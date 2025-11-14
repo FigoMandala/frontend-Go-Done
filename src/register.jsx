@@ -1,13 +1,16 @@
 import React, { useState } from "react";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
+
 import wallpaper from "./assets/wallpaper.png";
 import illustration from "./assets/Registrasi.svg";
 import { FaUser, FaLock, FaRegUser } from "react-icons/fa";
 import { MdOutlineMail } from "react-icons/md";
 
 function Register() {
-  // State untuk semua input
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -17,7 +20,6 @@ function Register() {
     confirmPassword: "",
   });
 
-  // Handle perubahan input
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -25,16 +27,14 @@ function Register() {
     });
   };
 
-  // Handle submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     toast.dismiss();
 
     const { firstName, lastName, username, email, password, confirmPassword } =
       formData;
 
-    // 🔹 Validasi sederhana
+    // Validasi
     if (
       !firstName ||
       !lastName ||
@@ -62,9 +62,8 @@ function Register() {
       return;
     }
 
-    // 🔹 Kirim data ke backend
     try {
-      const res = await axios.post("http://127.0.0.1:8000/api/register", {
+      const res = await axios.post("http://127.0.0.1:8000/api/auth/register", {
         first_name: firstName,
         last_name: lastName,
         username,
@@ -74,6 +73,7 @@ function Register() {
 
       if (res.data.success) {
         toast.success("Registrasi berhasil!");
+
         setFormData({
           firstName: "",
           lastName: "",
@@ -82,12 +82,21 @@ function Register() {
           password: "",
           confirmPassword: "",
         });
+
+        // Redirect otomatis ke login
+        setTimeout(() => {
+          navigate("/Login");
+        }, 1200);
       } else {
         toast.error(res.data.message || "Registrasi gagal!");
       }
     } catch (err) {
-      console.error(err);
-      toast.error("Terjadi kesalahan saat registrasi!");
+      console.error(err.response?.data || err);
+
+      // Ambil pesan dari backend kalau ada
+      const backendMessage = err.response?.data?.message;
+
+      toast.error(backendMessage || "Terjadi kesalahan saat registrasi!");
     }
   };
 
@@ -104,18 +113,8 @@ function Register() {
             padding: "16px 24px",
             borderRadius: "10px",
           },
-          error: {
-            style: {
-              background: "#ffffff",
-              color: "black",
-            },
-          },
-          success: {
-            style: {
-              background: "#ffffff",
-              color: "black",
-            },
-          },
+          error: { style: { background: "#fff", color: "black" } },
+          success: { style: { background: "#fff", color: "black" } },
         }}
       />
 
@@ -123,28 +122,24 @@ function Register() {
 
       <div
         className="
-          relative z-10 bg-white rounded-2xl shadow-2xl
-          flex flex-col lg:flex-row 
-          items-start justify-between
-          w-[90%] max-w-[1300px]
-          min-h-[650px] lg:min-h-[700px]
-          overflow-hidden
-          p-6
-        "
+        relative z-10 bg-white rounded-2xl shadow-2xl
+        flex flex-col lg:flex-row 
+        w-[90%] max-w-[1300px]
+        min-h-[650px]
+        overflow-hidden p-6
+      "
       >
         {/* FORM REGISTER */}
         <form
           onSubmit={handleSubmit}
-          className="w-full lg:w-1/2 flex flex-col justify-start px-10 lg:px-16 py-12"
+          className="w-full lg:w-1/2 flex flex-col px-10 lg:px-16 py-12"
         >
-          {/* Header */}
           <h1 className="text-[46px] font-semibold text-gray-800 mb-8">
             SIGN UP
           </h1>
 
-          {/* Input Fields */}
           <div className="space-y-4">
-            {/* First Name */}
+            {/* FIRST NAME */}
             <div className="flex items-center border border-gray-400 rounded-md px-4 py-3">
               <FaRegUser className="text-gray-500 mr-3" />
               <input
@@ -157,7 +152,7 @@ function Register() {
               />
             </div>
 
-            {/* Last Name */}
+            {/* LAST NAME */}
             <div className="flex items-center border border-gray-400 rounded-md px-4 py-3">
               <FaRegUser className="text-gray-500 mr-3" />
               <input
@@ -170,7 +165,7 @@ function Register() {
               />
             </div>
 
-            {/* Username */}
+            {/* USERNAME */}
             <div className="flex items-center border border-gray-400 rounded-md px-4 py-3">
               <FaUser className="text-gray-500 mr-3" />
               <input
@@ -183,7 +178,7 @@ function Register() {
               />
             </div>
 
-            {/* Email */}
+            {/* EMAIL */}
             <div className="flex items-center border border-gray-400 rounded-md px-4 py-3">
               <MdOutlineMail className="text-gray-500 mr-3" />
               <input
@@ -196,7 +191,7 @@ function Register() {
               />
             </div>
 
-            {/* Password */}
+            {/* PASSWORD */}
             <div className="flex items-center border border-gray-400 rounded-md px-4 py-3">
               <FaLock className="text-gray-500 mr-3" />
               <input
@@ -209,7 +204,7 @@ function Register() {
               />
             </div>
 
-            {/* Confirm Password */}
+            {/* CONFIRM PASSWORD */}
             <div className="flex items-center border border-gray-400 rounded-md px-4 py-3">
               <FaLock className="text-gray-500 mr-3" />
               <input
@@ -223,7 +218,6 @@ function Register() {
             </div>
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
             className="mt-6 bg-[#21569A] text-white px-6 py-2 rounded-md font-semibold hover:bg-[#1B4B59] w-32 transition-all"
@@ -232,7 +226,7 @@ function Register() {
           </button>
         </form>
 
-        {/* ILUSTRASI */}
+        {/* ILLUSTRATION */}
         <div className="w-full lg:w-1/2 flex justify-center items-start p-8 pt-24 lg:pt-32">
           <img
             src={illustration}
