@@ -1,16 +1,20 @@
 import { useState } from "react";
 import axios from "axios";
+// Pastikan jalur import gambar sudah benar sesuai struktur folder kamu
 import wallpaper from "../assets/wallpaper.png";
 import illustration from "../assets/illustration.svg";
 import { FaUser, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 
+function Login() {
+  // --- 1. STATE & VARIABLES (Harus di dalam function) ---
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
+  // --- 2. HANDLER FUNCTIONS (Harus di dalam function) ---
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -63,8 +67,8 @@ import { Link, useNavigate } from "react-router-dom";
       }
     }
   };
-  
 
+  // --- 3. RETURN JSX (Harus di dalam function) ---
   return (
     <div
       className="min-h-screen flex items-center justify-center bg-[#21596A] bg-cover bg-center relative"
@@ -135,6 +139,6 @@ import { Link, useNavigate } from "react-router-dom";
       </div>
     </div>
   );
-}
+} // <--- JANGAN LUPA TUTUP KURUNG KURAWAL DI SINI
 
 export default Login;
