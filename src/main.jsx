@@ -3,8 +3,16 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import "./index.css";
-import Login from "./Login.jsx";
-import Register from "./register.jsx";
+import Login from "./components/Login.jsx";
+import Register from "./components/register.jsx";
+import Dashboard from "./components/Dashboard.jsx";
+import TaskPriorities from "./components/TaskPriorities.jsx";
+import MyTask from "./components/MyTask.jsx";
+import Calendar from "./components/Calendar.jsx";
+import MainLayout from "./components/MainLayout.jsx";
+import TopbarOnlyLayout from "./components/TopbarOnlyLayout.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import Account from "./components/Account.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -12,6 +20,59 @@ createRoot(document.getElementById("root")).render(
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        
+        {/* Dashboard Routes with Layout - Protected */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <Dashboard />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-task"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <MyTask />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/priorities"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <TaskPriorities />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/calendar"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <Calendar />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        {/* Account page - full width under Topbar only (no Sidebar) */}
+        <Route
+          path="/account"
+          element={
+            <ProtectedRoute>
+              <TopbarOnlyLayout>
+                <Account />
+              </TopbarOnlyLayout>
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   </StrictMode>

@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
-import wallpaper from "./assets/wallpaper.png";
-import illustration from "./assets/Registrasi.svg";
+import wallpaper from "../assets/wallpaper.png";
+import illustration from "../assets/Registrasi.svg";
 import { FaUser, FaLock, FaRegUser } from "react-icons/fa";
 import { MdOutlineMail } from "react-icons/md";
 

@@ -1,15 +1,16 @@
 import { useState } from "react";
 import axios from "axios";
-import wallpaper from "./assets/wallpaper.png";
-import illustration from "./assets/illustration.svg";
+import wallpaper from "../assets/wallpaper.png";
+import illustration from "../assets/illustration.svg";
 import { FaUser, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,20 +29,45 @@ function App() {
     }
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/api/login", {
+      // Test connection dulu
+      console.log("🔄 Testing connection to backend...");
+      
+      const res = await axios.post("http://localhost:8000/api/auth/login", {
         email,
         password,
+      }, {
+        timeout: 5000,
+        headers: {
+          "Content-Type": "application/json",
+        }
       });
 
       if (res.data.success) {
         toast.success("Login berhasil!");
         localStorage.setItem("token", res.data.token);
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+        navigate("/dashboard");
       } else {
-        toast.error("Login gagal! Periksa kembali email dan password.");
+        toast.error(res.data.message || "Login gagal!");
       }
     } catch (err) {
-      toast.error("Email atau password salah!");
-      console.error(err);
+      console.error("❌ Login Error Details:", {
+        message: err.message,
+        code: err.code,
+        status: err.response?.status,
+        data: err.response?.data,
+        url: err.config?.url,
+      });
+      
+      if (err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
+        toast.error("❌ Tidak bisa konek ke server (127.0.0.1:8000). Cek backend!");
+      } else if (err.code === "ECONNABORTED") {
+        toast.error("❌ Request timeout - server tidak response");
+      } else {
+        toast.error("❌ Error: " + (err.message || "Unknown error"));
+      }
     }
   };
   
