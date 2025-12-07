@@ -1,6 +1,5 @@
 import { useState } from "react";
 import axios from "axios";
-// Pastikan jalur import gambar sudah benar sesuai struktur folder kamu
 import wallpaper from "../assets/wallpaper.png";
 import illustration from "../assets/illustration.svg";
 import { FaUser, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
@@ -8,7 +7,6 @@ import toast, { Toaster } from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 
 function Login() {
-  // --- 1. STATE & VARIABLES (Harus di dalam function) ---
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -25,7 +23,6 @@ function Login() {
     if (!password) return toast.error("Password tidak boleh kosong!");
 
     try {
-      // Test connection dulu
       console.log("🔄 Testing connection to backend...");
       
       const res = await axios.post("http://localhost:8000/api/auth/login", {
@@ -59,7 +56,7 @@ function Login() {
       if (err.response?.data?.message) {
         toast.error(err.response.data.message);
       } else if (err.code === "ERR_NETWORK" || err.message === "Network Error") {
-        toast.error("❌ Tidak bisa konek ke server (127.0.0.1:8000). Cek backend!");
+        toast.error("Lagi Tidak Terhubung Ke server coba lagi 😀");
       } else if (err.code === "ECONNABORTED") {
         toast.error("❌ Request timeout - server tidak response");
       } else {
@@ -68,7 +65,6 @@ function Login() {
     }
   };
 
-  // --- 3. RETURN JSX (Harus di dalam function) ---
   return (
     <div
       className="min-h-screen flex items-center justify-center bg-[#21596A] bg-cover bg-center relative"
@@ -139,6 +135,6 @@ function Login() {
       </div>
     </div>
   );
-} // <--- JANGAN LUPA TUTUP KURUNG KURAWAL DI SINI
+}
 
 export default Login;

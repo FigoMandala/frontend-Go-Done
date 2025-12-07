@@ -1,11 +1,57 @@
-import { FiEdit2, FiTrash2 } from "react-icons/fi";
+  import { useEffect, useState } from "react";
+  import axios from "axios";
+  import { FiEdit2, FiTrash2 } from "react-icons/fi";
 
-function Dashboard() {
+  function Dashboard() {
+
+    const [user, setUser] = useState({});
+    const [greeting, setGreeting] = useState("");
+
+    useEffect(() => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        console.log("Token tidak ditemukan!");
+        return;
+      }
+
+      axios
+        .get("http://127.0.0.1:8000/api/user/me", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        .then((res) => {
+          setUser(res.data);
+        })
+        .catch((err) => {
+          console.log("Error GET /me:", err);
+        });
+    }, []);
+
+    // Tentukan greeting sesuai waktu
+    useEffect(() => {
+      const now = new Date();
+      const hour = now.getHours();
+
+      if (hour >= 4 && hour < 11) {
+        setGreeting("Good Morning");
+      } else if (hour >= 11 && hour < 15) {
+        setGreeting("Good Afternoon");
+      } else if (hour >= 15 && hour < 19) {
+        setGreeting("Good Evening");
+      } else {
+        setGreeting("Good Night");
+      }
+    }, []);
+
   return (
     <div className="flex flex-col gap-6">
 
-      {/* 1. JUDUL */}
-      <h1 className="text-2xl font-semibold text-gray-800 pl-6 pt-6">Hello, Good Morning Figo!</h1>
+      {/* GREETING */}
+      <h1 className="text-2xl font-semibold text-gray-800 pl-6 pt-6">
+        Hello, {greeting} {user?.first_name}!
+      </h1>
 
       {/* 2. KONTEN GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -44,21 +90,22 @@ function Dashboard() {
         <div className="bg-white p-6 rounded-xl shadow-lg">
            <h2 className="font-bold text-xl mb-4">Schedule Today</h2>
            <div className="space-y-4">
-             <div className="flex justify-between items-center p-4 bg-blue-50  rounded-lg">
+             <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
                <div>
                  <p className="font-normal">Kecerdasan Artifisial</p>
                  <p className="text-gray-600/70 text-sm">KU3.05.15</p>
                </div>
                <span className="text-blue-600 font-semibold">09.30 WIB</span>
              </div>
-             <div className="flex justify-between items-center p-4 bg-blue-50  rounded-lg">
+
+             <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
                <div>
                  <p className="font-normal">Interaksi Manusia Komputer</p>
                  <p className="text-gray-600/70 text-sm">KU3.04.02</p>
                </div>
                <span className="text-blue-600 font-semibold">13.30 WIB</span>
              </div>
-        </div>
+           </div>
         </div>
 
         {/* TASK PRIORITIES */}
@@ -95,6 +142,7 @@ function Dashboard() {
         <div className="bg-white p-6 rounded-xl shadow-lg">
            <h2 className="font-bold text-xl mb-4">My Task</h2>
            <div className="space-y-3">
+
              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                <div className="flex items-center gap-3">
                  <input type="checkbox" className="w-5 h-5" />
@@ -139,6 +187,7 @@ function Dashboard() {
                  </button>
                </div>
              </div>
+
            </div>
         </div>
 

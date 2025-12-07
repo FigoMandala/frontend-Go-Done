@@ -6,11 +6,14 @@ import wallpaper from "../assets/wallpaper.png";
 import illustration from "../assets/Registrasi.svg";
 import { FaUser, FaLock, FaRegUser } from "react-icons/fa";
 import { MdOutlineMail } from "react-icons/md";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 
 function Register() {
   const navigate = useNavigate();
-
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [formData, setFormData] = useState({
+    
     firstName: "",
     lastName: "",
     username: "",
@@ -194,28 +197,53 @@ function Register() {
             <div className="flex items-center border border-gray-400 rounded-md px-4 py-3">
               <FaLock className="text-gray-500 mr-3" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Enter Password"
-                className="flex-1 outline-none text-gray-700"
+                className="flex-1 outline-none text-gray-700" 
               />
+              <button
+                type="button"
+                className="ml-2"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <FiEyeOff className="text-gray-600 w-5 h-5" />
+                ) : (
+                  <FiEye className="text-gray-600 w-5 h-5" />
+                )}
+              </button>
             </div>
 
             {/* CONFIRM PASSWORD */}
-            <div className="flex items-center border border-gray-400 rounded-md px-4 py-3">
-              <FaLock className="text-gray-500 mr-3" />
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                placeholder="Confirm Password"
-                className="flex-1 outline-none text-gray-700"
-              />
-            </div>
+          <div className="flex items-center border border-gray-400 rounded-md px-4 py-3">
+            <FaLock className="text-gray-500 mr-3" />
+
+            <input
+              type={showConfirm ? "text" : "password"}
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder="Confirm Password"
+              className="flex-1 outline-none text-gray-700"
+            />
+
+            <button
+              type="button"
+              className="ml-2"
+              onClick={() => setShowConfirm(!showConfirm)}
+            >
+              {showConfirm ? (
+                <FiEyeOff className="text-gray-600 w-5 h-5" />
+              ) : (
+                <FiEye className="text-gray-600 w-5 h-5" />
+              )}
+            </button>
           </div>
+          </div>
+
 
           <button
             type="submit"
