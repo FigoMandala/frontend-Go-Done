@@ -40,9 +40,13 @@ function Topbar() {
     };
 
     fetchTasks();
-  }, []);
 
-  // --- HELPER FUNCTIONS ---
+    const interval = setInterval(() => {
+      fetchTasks();
+    }, 30000); 
+
+    return () => clearInterval(interval);
+  }, []);
 
   const getDaysLeft = (deadline) => {
     if (!deadline) return null;
