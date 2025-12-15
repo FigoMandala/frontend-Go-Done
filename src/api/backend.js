@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const backend = axios.create({
-  baseURL: "http://127.0.0.1:8000/api",
+  baseURL: "https://backend-go-done-production.up.railway.app/api",
   timeout: 10000,
 });
 
