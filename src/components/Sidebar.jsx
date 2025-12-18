@@ -97,10 +97,9 @@ function Sidebar() {
       {/* LOGOUT */}
       <button
         onClick={handleLogout}
-        className={`p-4 border-t border-white/20 hover:bg-blue-800 flex items-center gap-3 rounded-lg w-full text-left cursor-pointer transition-all duration-300 hover:translate-x-1 hover:shadow-lg active:scale-95 ${
+        className={`p-4 border-t border-white/20 hover:bg-red-600 flex items-center gap-3 rounded-lg w-full text-left cursor-pointer transition-all duration-300 hover:translate-x-1 hover:shadow-lg active:scale-95 ${
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         }`}
-        style={{ transitionDelay: "600ms" }}
       >
         <FaSignOutAlt className="w-5 h-5" />
         <span>Log Out</span>

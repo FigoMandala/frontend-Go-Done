@@ -1,6 +1,7 @@
 import { Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import backend from "../api/backend.js";
+import LoadingSpinner from "./LoadingSpinner";
 
 function ProtectedRoute({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
@@ -36,7 +37,10 @@ function ProtectedRoute({ children }) {
         localStorage.removeItem("user");
         setIsAuthenticated(false);
       } finally {
-        setIsLoading(false);
+        // Delay 2 detik untuk testing loading animation
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 2000);
       }
     };
 
@@ -44,7 +48,7 @@ function ProtectedRoute({ children }) {
   }, []);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return <LoadingSpinner />;
   }
 
   if (!isAuthenticated) {

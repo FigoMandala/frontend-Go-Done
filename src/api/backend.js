@@ -20,8 +20,6 @@ backend.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401 || err.response?.status === 403) {
-      // Misalnya: redirect ke login bila token invalid/expired
-      // window.location.href = "/login";
     }
     return Promise.reject(err);
   }

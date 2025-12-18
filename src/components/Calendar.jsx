@@ -1,65 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import { FiPlus, FiMaximize2, FiMinimize2, FiCheck, FiChevronDown } from "react-icons/fi";
+import { FiMaximize2, FiMinimize2, FiCheck } from "react-icons/fi";
 import backend from "../api/backend";
-
-// ============================================================
-// CUSTOM DROPDOWN
-// ============================================================
-const CustomDropdown = ({ label, options, selected, onSelect }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="relative">
-      <label className="block text-gray-700 font-semibold mb-2">{label}</label>
-
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex justify-between items-center border rounded-lg p-3 bg-gray-50 transition-all duration-200 
-          ${isOpen ? "border-blue-500 ring-2 ring-blue-100" : "border-gray-300 hover:border-gray-400"}`}
-      >
-        <span className={selected ? "text-gray-800" : "text-gray-400"}>
-          {selected || `Choose ${label}...`}
-        </span>
-        <FiChevronDown
-          className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${
-            isOpen ? "rotate-180" : ""
-          }`}
-        />
-      </button>
-
-      {/* overlay */}
-      {isOpen && (
-        <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)}></div>
-      )}
-
-      {/* dropdown list */}
-      <div
-        className={`absolute z-20 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden transition-all duration-300 origin-top ease-out
-        ${isOpen ? "max-h-60 opacity-100 scale-y-100" : "max-h-0 opacity-0 scale-y-95"}`}
-      >
-        <ul className="py-1">
-          {options.map((option, index) => (
-            <li
-              key={index}
-              onClick={() => {
-                onSelect(option.value);
-                setIsOpen(false);
-              }}
-              className="px-4 py-3 hover:bg-blue-50 text-gray-700 cursor-pointer transition-colors flex items-center justify-between group"
-            >
-              <span className="group-hover:text-blue-600 font-medium">
-                {option.label}
-              </span>
-              {selected === option.value && <FiCheck className="text-blue-600" />}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-};
 
 // ============================================================
 // MAIN CALENDAR COMPONENT
@@ -68,21 +10,19 @@ function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Add Task Form
-  const [showAddForm, setShowAddForm] = useState(false);
+  // SUCCESS POPUP
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-
-  const [category, setCategory] = useState("");
-  const [priority, setPriority] = useState("");
 
   // BACKEND TASK DATA
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Day Popup State
+  // Day Selection State
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedEvents, setSelectedEvents] = useState([]);
-  const [showDayPopup, setShowDayPopup] = useState(false);
+
+  // View Mode: "all" or "selected"
+  const [viewMode, setViewMode] = useState("all");
 
   // Fetch tasks - filter completed tasks
   useEffect(() => {
@@ -91,13 +31,9 @@ function Calendar() {
         const res = await backend.get("/tasks");
 
         const parsed = res.data
-          .filter((t) => t.status !== "completed") // Filter out completed tasks
+          .filter((t) => t.status !== "completed")
           .map((t) => {
-            // Backend mengirim deadline sebagai string YYYY-MM-DD
-            // Jangan parse dengan Date object karena bisa timezone shift
             const deadline = (t.deadline || "").trim();
-            
-            console.log(`[CALENDAR] Task: ${t.title}, Deadline: "${deadline}"`);
             
             return {
               id: t.task_id,
@@ -150,12 +86,6 @@ function Calendar() {
     }
   };
 
-  // event handler
-  const handleCreateEvent = () => {
-    setShowAddForm(false);
-    setShowSuccessPopup(true);
-  };
-
   // calendar logic
   const daysInMonth = (date) =>
     new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -177,28 +107,19 @@ function Calendar() {
       new Date(currentDate.getFullYear(), currentDate.getMonth() + 1)
     );
 
-  // Group events by day - filter valid tasks only
   const getEventsForDay = (day) => {
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth() + 1;
 
     return tasks.filter((task) => {
-      // Filter out tasks with no deadline or no title
       if (!task.deadline || !task.title || !task.title.trim()) return false;
 
-      // Parse deadline: YYYY-MM-DD format
       const parts = task.deadline.split("-");
-      if (parts.length !== 3) {
-        console.warn(`Invalid deadline format: "${task.deadline}" for task "${task.title}"`);
-        return false;
-      }
+      if (parts.length !== 3) return false;
 
       const year = parseInt(parts[0], 10);
       const month = parseInt(parts[1], 10);
       const dayNum = parseInt(parts[2], 10);
-
-      // Debug log
-      console.log(`Task: ${task.title}, Deadline: ${task.deadline}, Parsed: ${year}-${month}-${dayNum}, Current: ${currentYear}-${currentMonth}-${day}, Match: ${dayNum === day && month === currentMonth && year === currentYear}`);
 
       return dayNum === day && month === currentMonth && year === currentYear;
     });
@@ -218,7 +139,7 @@ function Calendar() {
     const events = getEventsForDay(day);
     setSelectedDay(day);
     setSelectedEvents(events);
-    setShowDayPopup(true);
+    setViewMode("selected"); // Switch to selected view
   };
 
   return (
@@ -248,98 +169,7 @@ function Calendar() {
           </div>
         </div>
       )}
-        {showDayPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 relative animate-scale-in">
 
-              {/* CLOSE BUTTON */}
-              <button
-                onClick={() => setShowDayPopup(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-              >
-                ✕
-              </button>
-
-              {/* HEADER */}
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                Task(s) on {selectedDay} {monthName}
-              </h2>
-
-              {/* NO TASK CASE */}
-              {selectedEvents.length === 0 && (
-                <p className="text-gray-500 text-center py-6">Gak Ada Tugas Brow.</p>
-              )}
-
-              {/* MULTIPLE TASKS LIST */}
-              <div className="space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar pr-2">
-
-                {selectedEvents.map((task, index) => (
-                  <div
-                    key={index}
-                    className="border rounded-xl p-5 shadow-sm hover:shadow-md transition-all"
-                  >
-                    {/* Title */}
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
-
-                      {/* Priority Badge */}
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold capitalize 
-                          ${
-                            task.priority === "high"
-                              ? "bg-red-100 text-red-700"
-                              : task.priority === "medium"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-green-100 text-green-700"
-                          }
-                        `}
-                      >
-                        {task.priority}
-                      </span>
-                    </div>
-
-                    {/* Description */}
-                    <div className="mb-4">
-                      <p className="text-xs font-semibold text-gray-500 mb-1">Description</p>
-                      <p className="text-gray-700">{task.description || "No description"}</p>
-                    </div>
-
-                    {/* GRID INFO */}
-                    <div className="grid grid-cols-2 gap-4">
-
-                      {/* Category */}
-                      <div className="bg-gray-50 p-4 rounded-xl">
-                        <p className="text-xs font-semibold text-gray-500 mb-1">Category</p>
-                        <p className="text-gray-800 font-medium">{task.category}</p>
-                      </div>
-
-                      {/* Deadline */}
-                      <div className="bg-gray-50 p-4 rounded-xl">
-                        <p className="text-xs font-semibold text-gray-500 mb-1">Deadline</p>
-                        <p className="text-gray-800 font-medium">{task.deadline}</p>
-                      </div>
-
-                      {/* Status */}
-                      <div className="bg-gray-50 p-4 rounded-xl col-span-2">
-                        <p className="text-xs font-semibold text-gray-500 mb-1">Status</p>
-                        <p className="text-gray-800 font-medium capitalize">{task.status}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* CLOSE BUTTON BOTTOM */}
-              <button
-                onClick={() => setShowDayPopup(false)}
-                className="w-full mt-6 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl shadow-md active:scale-95"
-              >
-                Close
-              </button>
-
-            </div>
-          </div>
-        )}
       {/* HEADER */}
       <div className="flex justify-between items-center px-6 pt-6">
         <h1 className="text-2xl font-semibold text-gray-800">Calendar</h1>
@@ -475,31 +305,146 @@ function Calendar() {
         {/* RIGHT SIDEBAR */}
         {!isExpanded && (
           <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full">
-            {/* TASK LIST FROM BACKEND */}
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Event(s)</h3>
+            {/* HEADER - TAB BUTTONS */}
+            <div className="flex gap-2 mb-6">
+              <button
+                onClick={() => setViewMode("all")}
+                className={`flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-all ${
+                  viewMode === "all"
+                    ? "bg-[#21569A] text-white shadow-md"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                All Events
+              </button>
+              <button
+                onClick={() => setViewMode("selected")}
+                className={`flex-1 py-2 px-4 rounded-lg font-semibold text-sm transition-all ${
+                  viewMode === "selected"
+                    ? "bg-[#21569A] text-white shadow-md"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                Selected
+              </button>
+            </div>
 
-            <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1 mb-6">
+            {/* SELECTED DATE HEADER */}
+            {viewMode === "selected" && selectedDay && (
+              <div className="mb-4 pb-3 border-b border-gray-200">
+                <h3 className="text-sm font-bold text-gray-800">
+                  {new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDay).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric"
+                  })}
+                </h3>
+              </div>
+            )}
+
+            {/* TASK LIST */}
+            <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1 mb-6">
               {loading ? (
                 <div className="text-center text-gray-500 py-6">Loading...</div>
-              ) : validTasks.length === 0 ? (
-                <div className="text-center text-gray-500 py-6">No Tasks</div>
-              ) : (
-                validTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className={`p-4 rounded-lg border-l-4 ${getPriorityColor(
-                      task.priority
-                    )}`}
-                  >
-                    <p className="text-sm font-semibold mb-1 truncate">
-                      {task.title}
-                    </p>
+              ) : viewMode === "all" ? (
+                // ALL TASKS VIEW
+                validTasks.length === 0 ? (
+                  <div className="text-center text-gray-500 py-6">No Tasks</div>
+                ) : (
+                  (() => {
+                    // Group by date
+                    const grouped = {};
+                    validTasks.forEach(task => {
+                      const date = task.deadline;
+                      if (!grouped[date]) grouped[date] = [];
+                      grouped[date].push(task);
+                    });
 
-                    <p className="text-xs text-gray-600">
-                      {task.deadline} • {task.priority}
-                    </p>
+                    // Sort dates
+                    const sortedDates = Object.keys(grouped).sort();
+
+                    return sortedDates.map(date => {
+                      const tasks = grouped[date];
+                      const dateObj = new Date(date + "T00:00:00");
+                      const formattedDate = dateObj.toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric"
+                      });
+
+                      return (
+                        <div key={date} className="mb-4">
+                          {/* DATE HEADER */}
+                          <h4 className="text-sm font-bold text-gray-800 mb-2">
+                            {formattedDate}
+                          </h4>
+
+                          {/* TASKS FOR THIS DATE */}
+                          <div className="space-y-2">
+                            {tasks.map(task => (
+                              <div
+                                key={task.id}
+                                className={`p-3 rounded-lg border-l-4 ${getPriorityColor(
+                                  task.priority
+                                )}`}
+                              >
+                                <p className="text-sm font-semibold mb-1">
+                                  {task.title}
+                                </p>
+                                <p className="text-xs">
+                                  {task.deadline} <span className={
+                                    task.priority === "high"
+                                      ? "text-red-600 font-semibold"
+                                      : task.priority === "medium"
+                                      ? "text-yellow-600 font-semibold"
+                                      : "text-green-600 font-semibold"
+                                  }>
+                                    {task.priority} Priority
+                                  </span>
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()
+                )
+              ) : (
+                // SELECTED EVENTS VIEW
+                selectedEvents.length === 0 ? (
+                  <div className="text-center text-gray-500 py-6">
+                    {selectedDay 
+                      ? "No tasks on this date"
+                      : "Click a date to view tasks"}
                   </div>
-                ))
+                ) : (
+                  <div className="space-y-2">
+                    {selectedEvents.map(task => (
+                      <div
+                        key={task.id}
+                        className={`p-3 rounded-lg border-l-4 ${getPriorityColor(
+                          task.priority
+                        )}`}
+                      >
+                        <p className="text-sm font-semibold mb-1">
+                          {task.title}
+                        </p>
+                        <p className="text-xs">
+                          {task.deadline} <span className={
+                            task.priority === "high"
+                              ? "text-red-600 font-semibold"
+                              : task.priority === "medium"
+                              ? "text-yellow-600 font-semibold"
+                              : "text-green-600 font-semibold"
+                          }>
+                            {task.priority} Priority
+                          </span>
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )
               )}
             </div>
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { FaBell } from "react-icons/fa";
-import { useNavigate } from "react-router-dom"; // 1. IMPORT NAVIGATE
+import { useNavigate } from "react-router-dom";
 import logoGoDone from '../assets/GoDone Logo.png';
 import backend from "../api/backend";
 
@@ -9,7 +9,26 @@ function Topbar() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [tasks, setTasks] = useState([]);
   
-  const navigate = useNavigate(); // 2. INISIALISASI NAVIGATE
+  const navigate = useNavigate();
+
+  // Fungsi untuk fetch tasks (digunakan berkali-kali)
+  const fetchTasks = async () => {
+    try {
+      const response = await backend.get("/tasks");
+
+      const processedTasks = response.data
+        .filter(t => t.status === 'pending')
+        .map(t => ({
+          ...t,
+          deadline: t.deadline ? t.deadline.split(" ")[0].split("T")[0] : null
+        }));
+
+      setTasks(processedTasks);
+
+    } catch (error) {
+      console.error("Gagal mengambil notifikasi tasks:", error);
+    }
+  };
 
   // 1. Update Jam Realtime
   useEffect(() => {
@@ -19,34 +38,31 @@ function Topbar() {
      return () => clearInterval(timer);
   }, []);
 
-  // 2. Fetch Data Tasks dari Backend
+  // 2. Fetch Data Tasks - Initial + Polling + Event Listener
   useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const response = await backend.get("/tasks");
-
-        const processedTasks = response.data
-          .filter(t => t.status === 'pending')
-          .map(t => ({
-            ...t,
-            deadline: t.deadline ? t.deadline.split(" ")[0].split("T")[0] : null
-          }));
-
-        setTasks(processedTasks);
-
-      } catch (error) {
-        console.error("Gagal mengambil notifikasi tasks:", error);
-      }
-    };
-
     fetchTasks();
 
     const interval = setInterval(() => {
       fetchTasks();
-    }, 30000); 
+    }, 5000); 
 
-    return () => clearInterval(interval);
+    const handleTaskUpdate = () => {
+      fetchTasks();
+    };
+
+    window.addEventListener('taskUpdated', handleTaskUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('taskUpdated', handleTaskUpdate);
+    };
   }, []);
+
+  useEffect(() => {
+    if (showNotifications) {
+      fetchTasks();
+    }
+  }, [showNotifications]);
 
   const getDaysLeft = (deadline) => {
     if (!deadline) return null;
@@ -85,10 +101,9 @@ function Topbar() {
     return 'text-green-500';
   };
 
-  // 3. FUNGSI UNTUK PINDAH HALAMAN
   const handleViewAllClick = () => {
-    navigate("/my-task"); // Ganti '/my-task' sesuai route di App.jsx kamu
-    setShowNotifications(false); // Tutup popup setelah klik
+    navigate("/my-task");
+    setShowNotifications(false);
   };
 
   // --- UI RENDER ---
@@ -159,7 +174,7 @@ function Topbar() {
                 )}
               </div>
 
-              {/* FOOTER - UPDATE DISINI */}
+              {/* FOOTER */}
               <div className="border-t border-gray-100 py-3 text-center bg-white">
                 <button 
                   onClick={handleViewAllClick} 

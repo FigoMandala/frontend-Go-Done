@@ -73,7 +73,6 @@ function Dashboard() {
     fetchTasks();
   }, []);
 
-  // Set greeting based on time
   useEffect(() => {
     const now = new Date();
     const hour = now.getHours();
@@ -304,6 +303,40 @@ function Dashboard() {
 
         {/* CONTENT GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* TODAY'S TASKS */}
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <div className="flex items-center gap-2 mb-4">
+              <FiCalendar className="w-5 h-5 text-gray-700" />
+              <h2 className="font-bold text-xl">Today's Tasks</h2>
+            </div>
+            
+            <div className="space-y-3">
+              {loading ? (
+                <div className="text-center text-gray-500 py-8">Loading...</div>
+              ) : todayTasks.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">
+                  <p>No tasks due today</p>
+                  <p className="text-sm mt-1">Enjoy your day! ☀️</p>
+                </div>
+              ) : (
+                todayTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="flex justify-between items-center p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">{task.title}</p>
+                      <p className="text-sm text-gray-600">{task.category}</p>
+                    </div>
+                    <span className="ml-3 px-3 py-1 bg-blue-600 text-white rounded-full text-xs font-semibold">
+                      Due Today
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
           
           {/* UPCOMING DEADLINES */}
           <div className="bg-white p-6 rounded-xl shadow-lg">
@@ -340,77 +373,6 @@ function Dashboard() {
                   </div>
                 ))
               )}
-            </div>
-          </div>
-
-          {/* TODAY'S TASKS */}
-          <div className="bg-white p-6 rounded-xl shadow-lg">
-            <div className="flex items-center gap-2 mb-4">
-              <FiCalendar className="w-5 h-5 text-gray-700" />
-              <h2 className="font-bold text-xl">Today's Tasks</h2>
-            </div>
-            
-            <div className="space-y-3">
-              {loading ? (
-                <div className="text-center text-gray-500 py-8">Loading...</div>
-              ) : todayTasks.length === 0 ? (
-                <div className="text-center text-gray-500 py-8">
-                  <p>No tasks due today</p>
-                  <p className="text-sm mt-1">Enjoy your day! ☀️</p>
-                </div>
-              ) : (
-                todayTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="flex justify-between items-center p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{task.title}</p>
-                      <p className="text-sm text-gray-600">{task.category}</p>
-                    </div>
-                    <span className="ml-3 px-3 py-1 bg-blue-600 text-white rounded-full text-xs font-semibold">
-                      Due Today
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* TASK PRIORITIES */}
-          <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h2 className="font-bold text-xl mb-4">Task Priorities</h2>
-            
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-3 p-4 bg-red-50 rounded-lg border-l-4 border-red-500">
-                <div className="flex items-center gap-3">
-                  <span className="w-3 h-3 rounded-full bg-red-500" />
-                  <p className="font-semibold">High Priority</p>
-                </div>
-                <p className="text-red-600 text-lg font-bold">
-                  {priorityCounts.high}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between gap-3 p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-500">
-                <div className="flex items-center gap-3">
-                  <span className="w-3 h-3 rounded-full bg-yellow-400" />
-                  <p className="font-semibold">Medium Priority</p>
-                </div>
-                <p className="text-yellow-600 text-lg font-bold">
-                  {priorityCounts.medium}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between gap-3 p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
-                <div className="flex items-center gap-3">
-                  <span className="w-3 h-3 rounded-full bg-green-500" />
-                  <p className="font-semibold">Low Priority</p>
-                </div>
-                <p className="text-green-600 text-lg font-bold">
-                  {priorityCounts.low}
-                </p>
-              </div>
             </div>
           </div>
 
@@ -474,6 +436,43 @@ function Dashboard() {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+
+                    {/* TASK PRIORITIES */}
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h2 className="font-bold text-xl mb-4">Task Priorities</h2>
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3 p-4 bg-red-50 rounded-lg border-l-4 border-red-500">
+                <div className="flex items-center gap-3">
+                  <span className="w-3 h-3 rounded-full bg-red-500" />
+                  <p className="font-semibold">High Priority</p>
+                </div>
+                <p className="text-red-600 text-lg font-bold">
+                  {priorityCounts.high}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-500">
+                <div className="flex items-center gap-3">
+                  <span className="w-3 h-3 rounded-full bg-yellow-400" />
+                  <p className="font-semibold">Medium Priority</p>
+                </div>
+                <p className="text-yellow-600 text-lg font-bold">
+                  {priorityCounts.medium}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
+                <div className="flex items-center gap-3">
+                  <span className="w-3 h-3 rounded-full bg-green-500" />
+                  <p className="font-semibold">Low Priority</p>
+                </div>
+                <p className="text-green-600 text-lg font-bold">
+                  {priorityCounts.low}
+                </p>
+              </div>
             </div>
           </div>
 
