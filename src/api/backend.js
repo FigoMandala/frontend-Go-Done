@@ -15,7 +15,6 @@ backend.interceptors.request.use((config) => {
   return config;
 });
 
-// (Opsional) Tangani 401/403 global
 backend.interceptors.response.use(
   (res) => res,
   (err) => {
