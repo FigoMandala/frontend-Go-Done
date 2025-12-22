@@ -266,6 +266,7 @@ const res = await backend.get("/user/me");
       await uploadCroppedPhoto(croppedFile);
       setShowCropModal(false);
       setPreviewUrl(null);
+      URL.revokeObjectURL(previewUrl);
       setSelectedFile(null);
     } catch (err) {
       console.log("Crop error:", err);
@@ -278,7 +279,9 @@ const res = await backend.get("/user/me");
     formData.append("photo", file);
 
     try {
-      const res = await backend.post("/user/photo", formData);
+      const res = await backend.post("/user/photo", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
 
       if (res.data && res.data.success) {
         toast.success("Foto profil berhasil diperbarui!");
@@ -347,7 +350,7 @@ const res = await backend.get("/user/me");
             <div className="relative">
               <img
                 src={user.photo_url
-                  ? `http://127.0.0.1:8000${user.photo_url}`
+                  ? user.photo_url
                   : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT8IjqgqQD8US-0D098l2zOj7ot2utQNCJlUw&s"
                 }
                 alt="Preview"
@@ -657,7 +660,7 @@ const res = await backend.get("/user/me");
             >
               <img
                 src={user.photo_url
-                  ? `http://127.0.0.1:8000${user.photo_url}`
+                  ? user.photo_url
                   : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT8IjqgqQD8US-0D098l2zOj7ot2utQNCJlUw&s"
                 }
                 alt="Profile"

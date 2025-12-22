@@ -49,7 +49,7 @@ function Sidebar() {
           <img
             src={
               user?.photo_url
-                ? `http://127.0.0.1:8000${user.photo_url}`
+                ? user.photo_url
                 : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT8IjqgqQD8US-0D098l2zOj7ot2utQNCJlUw&s"
             }
             className="rounded-full w-12 h-12 object-cover border-2 border-white transition-all duration-300 group-hover:border-4 group-hover:shadow-xl"
