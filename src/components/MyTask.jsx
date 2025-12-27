@@ -91,16 +91,18 @@ function MyTask() {
         }));
         setCategories(catOpts);
 
-        // tasks: t.*, c.category_name (opsional tergantung backend)
-        const taskItems = (taskRes.data || []).map((t) => ({
-          id: t.task_id,
-          categoryId: t.category_id, // ID
-          title: t.title,
-          description: t.description,
-          priority: t.priority,
-          deadline: t.deadline, // diasumsikan 'YYYY-MM-DD'
-          status: t.status || "pending",
-        }));
+        // tasks: filter hanya status "pending"
+        const taskItems = (taskRes.data || [])
+          .filter((t) => t.status !== "completed")
+          .map((t) => ({
+            id: t.task_id,
+            categoryId: t.category_id, // ID
+            title: t.title,
+            description: t.description,
+            priority: t.priority,
+            deadline: t.deadline, // diasumsikan 'YYYY-MM-DD'
+            status: t.status || "pending",
+          }));
         setTasks(taskItems);
       } catch (err) {
         setErrorMessage(

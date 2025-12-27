@@ -47,20 +47,22 @@ function Dashboard() {
       try {
         const res = await backend.get("/tasks");
 
-        const parsed = res.data.map((t) => {
-          const deadline = (t.deadline || "").trim();
-          
-          return {
-            id: t.task_id,
-            category: t.category_name,
-            categoryId: t.category_id,
-            title: t.title,
-            description: t.description,
-            deadline: deadline,
-            priority: t.priority?.toLowerCase(),
-            status: t.status,
-          };
-        });
+        const parsed = res.data
+          .filter((t) => t.status !== "completed") // Filter out completed tasks
+          .map((t) => {
+            const deadline = (t.deadline || "").trim();
+            
+            return {
+              id: t.task_id,
+              category: t.category_name,
+              categoryId: t.category_id,
+              title: t.title,
+              description: t.description,
+              deadline: deadline,
+              priority: t.priority?.toLowerCase(),
+              status: t.status,
+            };
+          });
 
         setTasks(parsed);
       } catch (e) {

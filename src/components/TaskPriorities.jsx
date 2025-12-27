@@ -77,10 +77,12 @@ function TaskPriorities() {
     try {
       const res = await backend.get("/tasks");
 
-      const tasks = res.data.map((t) => ({
-        ...t,
-        priority: normalizePriority(t.priority),
-      }));
+      const tasks = res.data
+        .filter((t) => t.status !== "completed") // Filter out completed tasks
+        .map((t) => ({
+          ...t,
+          priority: normalizePriority(t.priority),
+        }));
 
       setHighTasks(tasks.filter((t) => t.priority === "High"));
       setMediumTasks(tasks.filter((t) => t.priority === "Medium"));
