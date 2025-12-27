@@ -1,61 +1,144 @@
 // src/components/MyTask.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { FiEdit2, FiTrash2, FiCheck, FiPlus } from "react-icons/fi";
-import CustomDropdown from "./CustomDropdown";
+import EditTaskForm from "./EditTaskForm";
 import backend from "../api/backend";
+
+// Sanitize output to prevent XSS when rendering
+const sanitizeOutput = (text) => {
+  if (!text) return "";
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+};
 
 const priorityBorder = (p) => {
   switch ((p || "").toLowerCase()) {
-    case "high":
-      return "border-red-500";
-    case "medium":
-      return "border-yellow-500";
-    case "low":
-      return "border-green-500";
-    default:
-      return "border-gray-300";
+    case "high": return "border-red-500";
+    case "medium": return "border-yellow-500";
+    case "low": return "border-green-500";
+    default: return "border-gray-300";
   }
+};
+
+const normalizeDate = (str) => {
+  if (!str) return "";
+  return str.includes("T") ? str.split("T")[0] : str;
+};
+
+// ========== Reusable Popup Component ==========
+const Popup = ({ show, type, title, message, onConfirm, onCancel, confirmText = "OK" }) => {
+  if (!show) return null;
+
+  const isSuccess = type === "success";
+  const isError = type === "error";
+  const isConfirm = type === "confirm";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+      <div className="bg-white p-8 rounded-2xl shadow-xl text-center max-w-md">
+        {isSuccess && (
+          <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FiCheck className="text-white w-8 h-8" />
+          </div>
+        )}
+        <h2 className={`text-${isSuccess ? '2' : ''}xl font-bold mb-${isSuccess ? '2' : '4'} ${
+          isError ? 'text-red-600' : isSuccess ? 'text-gray-800' : 'text-gray-800'
+        }`}>
+          {title}
+        </h2>
+        <p className="text-gray-600 mb-6">{message}</p>
+        
+        <div className={`flex gap-4 ${isConfirm ? '' : 'justify-center'}`}>
+          {isConfirm ? (
+            <>
+              <button
+                onClick={onConfirm}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg"
+              >
+                {confirmText}
+              </button>
+              <button
+                onClick={onCancel}
+                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={onCancel}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-10 py-2 rounded-lg"
+            >
+              {isError ? "Close" : "OK"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ========== Category Edit Popup ==========
+const CategoryEditPopup = ({ show, categoryName, onSave, onCancel }) => {
+  const [name, setName] = useState(categoryName);
+
+  useEffect(() => {
+    setName(categoryName);
+  }, [categoryName]);
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Edit Category</h2>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full border border-gray-300 rounded-lg p-3 mb-6"
+        />
+        <div className="flex gap-3">
+          <button
+            onClick={() => onSave(name)}
+            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg"
+          >
+            Save
+          </button>
+          <button
+            onClick={onCancel}
+            className="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 rounded-lg"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 function MyTask() {
   const [loading, setLoading] = useState(true);
+  const [isRequestPending, setIsRequestPending] = useState(false); // Prevent concurrent requests
 
-  // Popups umum
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-  const [showErrorPopup, setShowErrorPopup] = useState(false);
-  const [popupMessage, setPopupMessage] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+  // Unified popup state
+  const [popup, setPopup] = useState({ 
+    show: false, 
+    type: "", // success | error | confirm | validation | categoryEdit | categoryDeleteError
+    title: "",
+    message: "",
+    data: null
+  });
 
-  // Popups form
+  // Form states
   const [showAddForm, setShowAddForm] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState(null);
 
-  // Popups delete task
-  const [showDeletePopup, setShowDeletePopup] = useState(false);
-  const [deleteTaskId, setDeleteTaskId] = useState(null);
-
-  // Popups validation
-  const [showValidationPopup, setShowValidationPopup] = useState(false);
-  const [validationMessage, setValidationMessage] = useState("");
-
-  // Popups kategori
-  const [showCategoryEditPopup, setShowCategoryEditPopup] = useState(false);
-  const [showCategoryDeleteErrorPopup, setShowCategoryDeleteErrorPopup] = useState(false);
-  const [categoryToEdit, setCategoryToEdit] = useState(null);
-  const [editedCategoryName, setEditedCategoryName] = useState("");
-  const [categoryToDelete, setCategoryToDelete] = useState(null);
-
-  // Form state
-  const [taskTitle, setTaskTitle] = useState("");
-  const [categoryId, setCategoryId] = useState(""); // ID numeric/string
-  const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState("");
-  const [deadline, setDeadline] = useState(""); // format: YYYY-MM-DD
-
   // Data
-  const [categories, setCategories] = useState([]); // [{label, value:id}]
-  const [tasks, setTasks] = useState([]); // {id, categoryId, title, ...}
+  const [categories, setCategories] = useState([]);
+  const [tasks, setTasks] = useState([]);
 
   const priorityOptions = useMemo(
     () => [
@@ -72,9 +155,16 @@ function MyTask() {
     return map;
   }, [categories]);
 
-  // =========================
-  // Fetch initial data
-  // =========================
+  // ========== Helper to show popup ==========
+  const showPopup = (type, title, message, data = null) => {
+    setPopup({ show: true, type, title, message, data });
+  };
+
+  const closePopup = () => {
+    setPopup({ show: false, type: "", title: "", message: "", data: null });
+  };
+
+  // ========== Fetch initial data ==========
   useEffect(() => {
     const fetchAll = async () => {
       try {
@@ -84,31 +174,24 @@ function MyTask() {
           backend.get("/tasks"),
         ]);
 
-        // categories: [{category_id, category_name}]
         const catOpts = (catRes.data || []).map((c) => ({
           value: c.category_id,
           label: c.category_name,
         }));
         setCategories(catOpts);
 
-        // tasks: t.*, c.category_name (opsional tergantung backend)
         const taskItems = (taskRes.data || []).map((t) => ({
           id: t.task_id,
-          categoryId: t.category_id, // ID
+          categoryId: t.category_id,
           title: t.title,
           description: t.description,
           priority: t.priority,
-          deadline: t.deadline, // diasumsikan 'YYYY-MM-DD'
+          deadline: t.deadline,
           status: t.status || "pending",
         }));
         setTasks(taskItems);
       } catch (err) {
-        setErrorMessage(
-          err.response?.data?.error ||
-            err.response?.data?.message ||
-            "Failed to load data from server"
-        );
-        setShowErrorPopup(true);
+        showPopup("error", "Error", err.response?.data?.error || "Failed to load data from server");
       } finally {
         setLoading(false);
       }
@@ -117,51 +200,43 @@ function MyTask() {
     fetchAll();
   }, []);
 
-  // =========================
-  // Category ops (Add/Edit/Delete)
-  // =========================
+  // ========== Category operations ==========
   const handleAddCustomCategory = async (newName) => {
     try {
       const res = await backend.post("/categories", { category_name: newName });
       const newId = res.data?.category_id;
       const newObj = { value: newId, label: newName };
       setCategories((prev) => [...prev, newObj]);
-      setCategoryId(newId);
-      setPopupMessage("Category added");
-      setShowSuccessPopup(true);
+      showPopup("success", "Success!", "Category added");
     } catch (err) {
-      setErrorMessage(err.response?.data?.error || "Failed to add category");
-      setShowErrorPopup(true);
+      showPopup("error", "Error", err.response?.data?.error || "Failed to add category");
     }
   };
 
   const handleEditCategory = (catId) => {
     const found = categories.find((c) => String(c.value) === String(catId));
-    setCategoryToEdit(catId);
-    setEditedCategoryName(found?.label || "");
-    setShowCategoryEditPopup(true);
+    showPopup("categoryEdit", "", "", { id: catId, name: found?.label || "" });
   };
 
-  const handleSaveCategoryEdit = async () => {
-    const name = editedCategoryName.trim();
+  const handleSaveCategoryEdit = async (newName) => {
+    const name = newName.trim();
     if (!name) return;
 
+    const catId = popup.data.id;
+
     try {
-      await backend.put(`/categories/${categoryToEdit}`, { category_name: name });
+      await backend.put(`/categories/${catId}`, { category_name: name });
 
       setCategories((prev) =>
         prev.map((c) =>
-          String(c.value) === String(categoryToEdit) ? { ...c, label: name } : c
+          String(c.value) === String(catId) ? { ...c, label: name } : c
         )
       );
 
-      // tasks tidak perlu diubah karena pakai categoryId; label dirender via lookup
-      setShowCategoryEditPopup(false);
-      setPopupMessage("Category renamed successfully!");
-      setShowSuccessPopup(true);
+      closePopup();
+      showPopup("success", "Success!", "Category renamed successfully!");
     } catch (err) {
-      setErrorMessage(err.response?.data?.error || "Failed to update category");
-      setShowErrorPopup(true);
+      showPopup("error", "Error", err.response?.data?.error || "Failed to update category");
     }
   };
 
@@ -169,432 +244,200 @@ function MyTask() {
     try {
       await backend.delete(`/categories/${catId}`);
       setCategories((prev) => prev.filter((c) => String(c.value) !== String(catId)));
-      if (String(categoryId) === String(catId)) setCategoryId("");
-      setPopupMessage("Category deleted successfully!");
-      setShowSuccessPopup(true);
+      showPopup("success", "Success!", "Category deleted successfully!");
     } catch (err) {
-      // Soft guard dari backend → 400
       if (err.response?.status === 400) {
         const found = categories.find((c) => String(c.value) === String(catId));
-        setCategoryToDelete(found?.label || "this category");
-        setShowCategoryDeleteErrorPopup(true);
+        showPopup(
+          "categoryDeleteError", 
+          "Cannot Delete Category", 
+          `Category "${found?.label || "this category"}" is used by existing tasks.`
+        );
         return;
       }
-      setErrorMessage(err.response?.data?.error || "Failed to delete category");
-      setShowErrorPopup(true);
+      showPopup("error", "Error", err.response?.data?.error || "Failed to delete category");
     }
   };
 
-  // =========================
-  // Validation
-  // =========================
-  const validateForm = () => {
-    if (!taskTitle.trim()) {
-      setValidationMessage("Task title is required!");
-      setShowValidationPopup(true);
-      return false;
-    }
-    if (!categoryId) {
-      setValidationMessage("Please select a category!");
-      setShowValidationPopup(true);
-      return false;
-    }
-    if (!description.trim()) {
-      setValidationMessage("Task description is required!");
-      setShowValidationPopup(true);
-      return false;
-    }
-    if (!priority) {
-      setValidationMessage("Please select a priority!");
-      setShowValidationPopup(true);
-      return false;
-    }
-    if (!deadline) {
-      setValidationMessage("Please select a deadline!");
-      setShowValidationPopup(true);
-      return false;
-    }
-    return true;
-  };
-
-  // =========================
-  // Task ops (Create/Update/Delete)
-  // =========================
-  const handleCreateTask = async () => {
-    if (!validateForm()) return;
+  // ========== Task operations ==========
+  const handleSaveTask = async (formData) => {
+    // Prevent concurrent requests
+    if (isRequestPending) return;
+    setIsRequestPending(true);
 
     try {
-      const payload = {
-        category_id: categoryId,
-        title: taskTitle.trim(),
-        description: description.trim(),
-        deadline: normalizeDate(deadline),
-        priority,
-      };
-      const res = await backend.post("/tasks", payload);
-      const newId = res.data?.task_id;
+      if (isEditMode) {
+        // Update
+        await backend.put(`/tasks/${editingTaskId}`, formData);
 
-      const newTask = { id: newId, categoryId, title: payload.title, description: payload.description, priority, deadline, status: "pending" };
-      setTasks((prev) => [newTask, ...prev]);
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === editingTaskId
+              ? {
+                  ...t,
+                  categoryId: formData.category_id,
+                  title: formData.title,
+                  description: formData.description,
+                  priority: formData.priority,
+                  deadline: formData.deadline,
+                }
+              : t
+          )
+        );
 
-      resetForm();
+        showPopup("success", "Success!", "Task updated successfully!");
+      } else {
+        // Create
+        const res = await backend.post("/tasks", formData);
+        const newId = res.data?.task_id;
+
+        const newTask = {
+          id: newId,
+          categoryId: formData.category_id,
+          title: formData.title,
+          description: formData.description,
+          priority: formData.priority,
+          deadline: formData.deadline,
+          status: "pending",
+        };
+        setTasks((prev) => [newTask, ...prev]);
+
+        showPopup("success", "Success!", "You have successfully added a new task!");
+      }
+
       setShowAddForm(false);
-      setPopupMessage("You have successfully added a new task!");
-      setShowSuccessPopup(true);
+      setIsEditMode(false);
+      setEditingTaskId(null);
     } catch (err) {
-      setErrorMessage(err.response?.data?.error || "Failed to create task");
-      setShowErrorPopup(true);
-    }
-  };
-
-  const handleUpdateTask = async () => {
-    if (!validateForm()) return;
-
-    try {
-      const payload = {
-        category_id: categoryId,
-        title: taskTitle.trim(),
-        description: description.trim(),
-        deadline: normalizeDate(deadline),
-        priority,
-        status: "pending",
-      };
-      await backend.put(`/tasks/${editingTaskId}`, payload);
-
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === editingTaskId
-            ? {
-                ...t,
-                categoryId,
-                title: payload.title,
-                description: payload.description,
-                priority,
-                deadline,
-              }
-            : t
-        )
-      );
-
-      resetForm();
-      setShowAddForm(false);
-      setPopupMessage("Task updated successfully!");
-      setShowSuccessPopup(true);
-    } catch (err) {
-      setErrorMessage(err.response?.data?.error || "Failed to update task");
-      setShowErrorPopup(true);
+      showPopup("error", "Error", err.response?.data?.error || "Failed to save task");
+    } finally {
+      setIsRequestPending(false);
     }
   };
 
   const handleDeleteClick = (taskId) => {
-    setDeleteTaskId(taskId);
-    setShowDeletePopup(true);
+    showPopup("confirm", "Delete Task?", "Are you sure you want to delete this task?", { taskId });
   };
 
   const handleDeleteConfirm = async () => {
+    // Prevent concurrent requests
+    if (isRequestPending) return;
+    setIsRequestPending(true);
+
+    const taskId = popup.data.taskId;
     try {
-      await backend.delete(`/tasks/${deleteTaskId}`);
-      setTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
-      setShowDeletePopup(false);
-      setPopupMessage("Task deleted successfully!");
-      setShowSuccessPopup(true);
+      await backend.delete(`/tasks/${taskId}`);
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      closePopup();
+      showPopup("success", "Success!", "Task deleted successfully!");
     } catch (err) {
-      setErrorMessage(err.response?.data?.error || "Failed to delete task");
-      setShowErrorPopup(true);
+      showPopup("error", "Error", err.response?.data?.error || "Failed to delete task");
+    } finally {
+      setIsRequestPending(false);
     }
   };
 
   const handleEditTask = (task) => {
     setEditingTaskId(task.id);
-    setTaskTitle(task.title);
-    setCategoryId(task.categoryId);
-    setDescription(task.description);
-    setPriority(task.priority);
-    setDeadline(normalizeDate(task.deadline));
     setIsEditMode(true);
     setShowAddForm(true);
   };
 
   const handleFinishTask = async (taskId) => {
+    // Prevent concurrent requests
+    if (isRequestPending) return;
+    setIsRequestPending(true);
+
     try {
-      await backend.put(`/tasks/${taskId}`, {
-        status: "completed",
-      });
-
-      // Hapus task dari list setelah di-complete
-      setTasks((prev) => prev.filter((t) => t.id !== taskId));
-
-      setPopupMessage("Task marked as completed!");
-      setShowSuccessPopup(true);
+      await backend.put(`/tasks/${taskId}`, { status: "completed" });
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId ? { ...t, status: "completed" } : t
+        )
+      );
+      showPopup("success", "Success!", "Task marked as completed!");
     } catch (err) {
-      setErrorMessage(err.response?.data?.error || "Failed to complete task");
-      setShowErrorPopup(true);
+      showPopup("error", "Error", err.response?.data?.error || "Failed to complete task");
+    } finally {
+      setIsRequestPending(false);
     }
   };
 
-  // =========================
-  // Helpers
-  // =========================
-  const resetForm = () => {
-    setTaskTitle("");
-    setCategoryId("");
-    setDescription("");
-    setPriority("");
-    setDeadline("");
-    setEditingTaskId(null);
-    setIsEditMode(false);
-  };
-
   const handleCancel = () => {
-    resetForm();
     setShowAddForm(false);
+    setIsEditMode(false);
+    setEditingTaskId(null);
   };
 
-  // =========================
-  // Format deadline helper
-  // =========================
-  const formatDeadline = (dateStr) => {
-    if (!dateStr) return "-";
-    // dateStr format: YYYY-MM-DD
-    // Langsung kembalikan karena sudah dalam format yang benar
-    return dateStr;
-  };
-
-  // =========================
-  // Normalize date helper
-  // =========================
-
-  const normalizeDate = (str) => {
-  if (!str) return "";
-  if (str.includes("T")) return str.split("T")[0];
-  return str;
-};
-
-
-  // =========================
-  // UI — Add/Edit Form
-  // =========================
+  // ========== UI - Add/Edit Form ==========
   if (showAddForm) {
+    const taskToEdit = isEditMode ? tasks.find(t => t.id === editingTaskId) : null;
+    const formTaskData = taskToEdit ? {
+      id: taskToEdit.id,
+      title: taskToEdit.title,
+      categoryId: taskToEdit.categoryId,
+      description: taskToEdit.description,
+      priority: taskToEdit.priority,
+      deadline: normalizeDate(taskToEdit.deadline),
+      status: taskToEdit.status
+    } : null;
+
     return (
-      <div className="flex flex-col gap-6 animate-fade-in-up">
-        <h1 className="text-2xl font-semibold text-gray-800 pl-6 pt-6">
-          {isEditMode ? "Edit Task" : "Add Task"}
-        </h1>
-
-        <div className="bg-white rounded-xl shadow-lg p-8 mx-6 mb-6">
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-            {/* Title */}
-            <div>
-              <label className="block text-gray-700 font-semibold mb-2">
-                Task Title
-              </label>
-              <input
-                type="text"
-                value={taskTitle}
-                onChange={(e) => setTaskTitle(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg p-3 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 bg-gray-50 transition"
-                placeholder="Enter task title"
-              />
-            </div>
-
-            {/* Category */}
-            <CustomDropdown
-              label="Select Category"
-              selected={categoryId}
-              onSelect={(val) => setCategoryId(val)}
-              options={categories}
-              allowCustom
-              onAddCustom={handleAddCustomCategory}
-              onEditCategory={handleEditCategory}
-              onDeleteCategory={handleDeleteCategory}
-            />
-
-            {/* Description */}
-            <div>
-              <label className="block text-gray-700 font-semibold mb-2">
-                Task Description
-              </label>
-              <input
-                type="text"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50 focus:border-blue-500"
-                placeholder="Enter description"
-              />
-            </div>
-
-            {/* Priority / Deadline */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <CustomDropdown
-                label="Select Priority"
-                selected={priority}
-                onSelect={setPriority}
-                options={priorityOptions}
-              />
-
-              <div>
-                <label className="block text-gray-700 font-semibold mb-2">
-                  Choose Deadline
-                </label>
-                <input
-                  type="date"
-                  value={deadline}
-                  onChange={(e) => setDeadline(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg p-3 bg-gray-50"
-                />
-              </div>
-            </div>
-
-            {/* Buttons */}
-            <div className="flex gap-4 pt-4">
-              <button
-                type="button"
-                onClick={isEditMode ? handleUpdateTask : handleCreateTask}
-                className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded-lg"
-              >
-                {isEditMode ? "Update Task" : "Create Task"}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-6 rounded-lg"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Validation popup */}
-        {showValidationPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-            <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full mx-4 text-center">
-              <h2 className="text-xl font-bold text-red-600 mb-4">Validation Error</h2>
-              <p className="text-gray-700 mb-6 font-medium">{validationMessage}</p>
-              <button
-                onClick={() => setShowValidationPopup(false)}
-                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-10 py-2 rounded-lg"
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        )}
+      <>
+        <EditTaskForm
+          isOpen={showAddForm}
+          isEditMode={isEditMode}
+          task={formTaskData}
+          categories={categories}
+          onSave={handleSaveTask}
+          onCancel={handleCancel}
+          onAddCategory={handleAddCustomCategory}
+          onEditCategory={handleEditCategory}
+          onDeleteCategory={handleDeleteCategory}
+        />
 
         {/* Category Edit Popup */}
-        {showCategoryEditPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-            <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Edit Category</h2>
-              <input
-                type="text"
-                value={editedCategoryName}
-                onChange={(e) => setEditedCategoryName(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg p-3 mb-6"
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={handleSaveCategoryEdit}
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => setShowCategoryEditPopup(false)}
-                  className="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 rounded-lg"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <CategoryEditPopup
+          show={popup.type === "categoryEdit"}
+          categoryName={popup.data?.name || ""}
+          onSave={handleSaveCategoryEdit}
+          onCancel={closePopup}
+        />
 
-        {/* Category Delete Error Popup */}
-        {showCategoryDeleteErrorPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 backdrop-blur-sm">
-            <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md text-center">
-              <h2 className="text-xl font-bold text-red-600 mb-3">Cannot Delete Category</h2>
-              <p className="text-gray-700 mb-6">
-                Category <b>{categoryToDelete}</b> is used by existing tasks.
-              </p>
-              <button
-                onClick={() => setShowCategoryDeleteErrorPopup(false)}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-2 rounded-lg"
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+        {/* Category Delete Error */}
+        <Popup
+          show={popup.type === "categoryDeleteError"}
+          type="error"
+          title={popup.title}
+          message={popup.message}
+          onCancel={closePopup}
+        />
+      </>
     );
   }
 
-  // =========================
-  // UI — Task List
-  // =========================
+  // ========== UI - Task List ==========
   return (
     <>
-      {/* Success Popup */}
-      {showSuccessPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white p-8 rounded-2xl shadow-xl text-center max-w-md">
-            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FiCheck className="text-white w-8 h-8" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Success!</h2>
-            <p className="text-gray-600 mb-6">{popupMessage}</p>
-            <button
-              onClick={() => setShowSuccessPopup(false)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-10 py-2 rounded-lg"
-            >
-              OK
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Success/Error Popup */}
+      <Popup
+        show={popup.type === "success" || popup.type === "error"}
+        type={popup.type}
+        title={popup.title}
+        message={popup.message}
+        onCancel={closePopup}
+      />
 
-      {/* Error Popup */}
-      {showErrorPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-          <div className="bg-white p-8 rounded-2xl shadow-xl text-center max-w-md">
-            <h2 className="text-xl font-bold text-red-600 mb-2">Error</h2>
-            <p className="text-gray-700 mb-6">{errorMessage}</p>
-            <button
-              onClick={() => setShowErrorPopup(false)}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-2 rounded-lg"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Task Popup */}
-      {showDeletePopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-          <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
-            <h2 className="text-xl font-bold mb-4">Delete Task?</h2>
-            <p className="text-gray-600 mb-6">Are you sure you want to delete this task?</p>
-            <div className="flex gap-4">
-              <button
-                onClick={handleDeleteConfirm}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg"
-              >
-                Yes, Delete
-              </button>
-              <button
-                onClick={() => setShowDeletePopup(false)}
-                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Delete Confirmation */}
+      <Popup
+        show={popup.type === "confirm"}
+        type="confirm"
+        title={popup.title}
+        message={popup.message}
+        onConfirm={handleDeleteConfirm}
+        onCancel={closePopup}
+        confirmText="Yes, Delete"
+      />
 
       {/* Header + Add Button */}
       <div className="flex justify-between items-center pl-6 pt-6">
@@ -622,24 +465,49 @@ function MyTask() {
             {tasks.filter(task => task.title && task.title.trim()).map((task) => (
               <div
                 key={task.id}
-                className={`flex items-center justify-between p-4 rounded-lg border-l-4 bg-gray-50 ${priorityBorder(task.priority)} hover:shadow-md transition-all`}
+                className={`flex items-center justify-between p-4 rounded-lg border-l-4 transition-all ${
+                  task.status === "completed"
+                    ? "bg-gray-100 border-gray-300 opacity-60"
+                    : `bg-gray-50 ${priorityBorder(task.priority)} hover:shadow-md`
+                }`}
               >
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">{task.title}</p>
-                  <p className="text-xs text-gray-500">
-                    {categoriesMap[String(task.categoryId)] || "-"}
+                <div className={task.status === "completed" ? "opacity-70" : ""}>
+                  <p className={`text-sm font-semibold ${
+                    task.status === "completed"
+                      ? "text-gray-500 line-through"
+                      : "text-gray-800"
+                  }`}>
+                    {sanitizeOutput(task.title)}
+                  </p>
+                  <p className={`text-xs ${
+                    task.status === "completed"
+                      ? "text-gray-400"
+                      : "text-gray-500"
+                  }`}>
+                    {sanitizeOutput(categoriesMap[String(task.categoryId)] || "-")}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-blue-600">Due: {formatDeadline(task.deadline)}</span>
+                  <span className={`text-xs ${
+                    task.status === "completed"
+                      ? "text-gray-400"
+                      : "text-blue-600"
+                  }`}>
+                    Due: {normalizeDate(task.deadline) || "-"}
+                  </span>
 
                   <button
                     onClick={() => handleEditTask(task)}
                     className="p-2 hover:bg-gray-200 rounded-lg"
                     title="Edit"
+                    disabled={task.status === "completed"}
                   >
-                    <FiEdit2 className="text-blue-600 w-5 h-5" />
+                    <FiEdit2 className={`w-5 h-5 ${
+                      task.status === "completed"
+                        ? "text-gray-400"
+                        : "text-blue-600"
+                    }`} />
                   </button>
 
                   <button
@@ -653,9 +521,14 @@ function MyTask() {
                   <button
                     onClick={() => handleFinishTask(task.id)}
                     className="p-2 hover:bg-gray-200 rounded-lg"
-                    title="Mark as finished"
+                    title={task.status === "completed" ? "Already completed" : "Mark as finished"}
+                    disabled={task.status === "completed"}
                   >
-                    <FiCheck className="text-green-500 w-5 h-5" />
+                    <FiCheck className={`w-5 h-5 ${
+                      task.status === "completed"
+                        ? "text-gray-400"
+                        : "text-green-500"
+                    }`} />
                   </button>
                 </div>
               </div>

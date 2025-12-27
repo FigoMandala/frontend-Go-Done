@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 import { FiEdit2, FiTrash2, FiClock, FiCalendar, FiCheckCircle, FiAlertTriangle, FiCheck } from "react-icons/fi";
 import backend from "../api/backend";
 
+// Sanitize output to prevent XSS when rendering
+const sanitizeOutput = (text) => {
+  if (!text) return "";
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+};
+
 function Dashboard() {
   const [user, setUser] = useState({});
   const [greeting, setGreeting] = useState("");
@@ -157,7 +165,7 @@ function Dashboard() {
   const upcomingTasks = tasks
     .filter((t) => {
       const days = getDaysUntilDeadline(t.deadline);
-      return days !== null && days >= 0 && days <= 7;
+      return days !== null && days >= 0 && days <= 7 && t.status !== "completed";
     })
     .sort((a, b) => {
       const daysA = getDaysUntilDeadline(a.deadline);
@@ -168,7 +176,7 @@ function Dashboard() {
 
   const todayTasks = tasks.filter((t) => {
     const days = getDaysUntilDeadline(t.deadline);
-    return days === 0;
+    return days === 0 && t.status !== "completed";
   });
 
   // Overdue tasks - only incomplete tasks that are past deadline
@@ -279,8 +287,12 @@ function Dashboard() {
         status: "completed",
       });
 
-      // Remove task from list after completion
-      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      // Update task status in local state
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId ? { ...t, status: "completed" } : t
+        )
+      );
 
       setPopupMessage("Task marked as completed!");
       setShowSuccessPopup(true);
@@ -326,8 +338,8 @@ function Dashboard() {
                     className="flex justify-between items-center p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{task.title}</p>
-                      <p className="text-sm text-gray-600">{task.category}</p>
+                      <p className="font-semibold truncate">{sanitizeOutput(task.title)}</p>
+                      <p className="text-sm text-gray-600">{sanitizeOutput(task.category)}</p>
                     </div>
                     <span className="ml-3 px-3 py-1 bg-blue-600 text-white rounded-full text-xs font-semibold">
                       Due Today
@@ -362,7 +374,7 @@ function Dashboard() {
                     )}`}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{task.title}</p>
+                      <p className="font-semibold truncate">{sanitizeOutput(task.title)}</p>
                       <p className="text-sm text-gray-600">
                         {formatDeadlineText(task.deadline)}
                       </p>
@@ -399,7 +411,7 @@ function Dashboard() {
                     className="flex items-center justify-between p-4 bg-red-50 rounded-lg border-l-4 border-red-600 hover:bg-red-100 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate text-red-900">{task.title}</p>
+                      <p className="font-semibold truncate text-red-900">{sanitizeOutput(task.title)}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <p className="text-xs text-red-600 font-semibold">
                           {getOverdueText(task.deadline)}

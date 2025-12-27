@@ -13,7 +13,10 @@ function Account() {
   
   // ========= Core states =========
   const [user, setUser] = useState({});
-  const [notifOn, setNotifOn] = useState(true);
+  const [notifOn, setNotifOn] = useState(() => {
+    const saved = localStorage.getItem("notifEnabled");
+    return saved === null ? true : JSON.parse(saved);
+  });
   const [isEditing, setIsEditing] = useState(false);
 
   // ========= Popup (success & error) =========
@@ -79,6 +82,14 @@ const res = await backend.get("/user/me");
   }, []);
 
   // ===============================
+  // Toast Helper - Check Notification Status
+  // ===============================
+  const showToast = (type, message) => {
+    if (!notifOn) return;
+    toast[type](message);
+  };
+
+  // ===============================
   // Handlers
   // ===============================
   const handleBack = () => navigate('/dashboard');
@@ -93,13 +104,13 @@ const res = await backend.get("/user/me");
 
       if (res.data.success) {
         setUser(prev => ({ ...prev, photo_url: null }));
-        toast.success("Photo removed!");
+        showToast("success", "Photo removed!");
       } else {
-        toast.error("Gagal hapus foto!");
+        showToast("error", "Gagal hapus foto!");
       }
     } catch (err) {
       console.log(err);
-      toast.error("Gagal hapus foto!");
+      showToast("error", "Gagal hapus foto!");
     }
 
     setShowDeletePhoto(false);
@@ -146,14 +157,14 @@ const res = await backend.get("/user/me");
   // SAVE PROFILE (with validation)
   // ===============================
   const handleSaveProfile = async () => {
-    toast.dismiss();
+    if (notifOn) toast.dismiss();
 
     // ---- Basic validation
-    if (!formData.firstName.trim()) return toast.error("First name tidak boleh kosong!");
-    if (!formData.lastName.trim()) return toast.error("Last name tidak boleh kosong!");
-    if (!formData.email.trim()) return toast.error("Email tidak boleh kosong!");
+    if (!formData.firstName.trim()) return showToast("error", "First name tidak boleh kosong!");
+    if (!formData.lastName.trim()) return showToast("error", "Last name tidak boleh kosong!");
+    if (!formData.email.trim()) return showToast("error", "Email tidak boleh kosong!");
     if (!formData.email.includes("@") || !formData.email.includes(".")) {
-      return toast.error("Format email tidak valid!");
+      return showToast("error", "Format email tidak valid!");
     }
 
     const isChangingPassword =
@@ -270,7 +281,7 @@ const res = await backend.get("/user/me");
       setSelectedFile(null);
     } catch (err) {
       console.log("Crop error:", err);
-      toast.error("Gagal crop foto!");
+      showToast("error", "Gagal crop foto!");
     }
   };
 
@@ -284,19 +295,19 @@ const res = await backend.get("/user/me");
       });
 
       if (res.data && res.data.success) {
-        toast.success("Foto profil berhasil diperbarui!");
+        showToast("success", "Foto profil berhasil diperbarui!");
         // update UI
         setUser(prev => ({
           ...prev,
           photo_url: res.data.photo_url
         }));
       } else {
-        toast.error(res.data?.message || "Gagal upload foto!");
+        showToast("error", res.data?.message || "Gagal upload foto!");
       }
 
     } catch (err) {
       console.log(err);
-      toast.error("Gagal upload foto!");
+      showToast("error", "Gagal upload foto!");
     }
   };
 
@@ -701,7 +712,11 @@ const res = await backend.get("/user/me");
                 <div className="text-gray-700">Notification</div>
               </div>
               <button
-                onClick={() => setNotifOn(!notifOn)}
+                onClick={() => {
+                  const newVal = !notifOn;
+                  setNotifOn(newVal);
+                  localStorage.setItem("notifEnabled", JSON.stringify(newVal));
+                }}
                 className={`w-14 h-8 rounded-full p-1 flex items-center ${
                   notifOn ? 'bg-[#21569A]' : 'bg-[#21569A]/70'
                 }`}

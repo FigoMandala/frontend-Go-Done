@@ -37,10 +37,10 @@ function ProtectedRoute({ children }) {
         localStorage.removeItem("user");
         setIsAuthenticated(false);
       } finally {
-        // Delay 2 detik untuk testing loading animation
+        // Delay 500ms untuk smooth transition
         setTimeout(() => {
           setIsLoading(false);
-        }, 2000);
+        }, 500);
       }
     };
 

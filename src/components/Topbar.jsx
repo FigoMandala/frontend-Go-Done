@@ -9,10 +9,22 @@ function Topbar() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [tasks, setTasks] = useState([]);
   
+  // Read notification preference from localStorage
+  const [notifOn] = useState(() => {
+    const saved = localStorage.getItem("notifEnabled");
+    return saved === null ? true : JSON.parse(saved);
+  });
+  
   const navigate = useNavigate();
 
   // Fungsi untuk fetch tasks (digunakan berkali-kali)
   const fetchTasks = async () => {
+    // Don't fetch if notifications are disabled
+    if (!notifOn) {
+      setTasks([]);
+      return;
+    }
+    
     try {
       const response = await backend.get("/tasks");
 
@@ -56,7 +68,7 @@ function Topbar() {
       clearInterval(interval);
       window.removeEventListener('taskUpdated', handleTaskUpdate);
     };
-  }, []);
+  }, [notifOn]);
 
   useEffect(() => {
     if (showNotifications) {

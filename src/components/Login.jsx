@@ -7,7 +7,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 
 function Login() {
-  const [email, setEmail] = useState("");
+  const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
@@ -18,15 +18,14 @@ function Login() {
 
     toast.dismiss();
 
-    if (!email) return toast.error("Email tidak boleh kosong!");
-    if (!email.includes("@")) return toast.error("Email harus mengandung '@'!");
+    if (!emailOrUsername) return toast.error("Email atau Username tidak boleh kosong!");
     if (!password) return toast.error("Password tidak boleh kosong!");
 
     try {
       console.log("🔄 Testing connection to backend...");
       
       const res = await backend.post("/auth/login", {
-        email,
+        emailOrUsername,
         password,
       });
 
@@ -77,15 +76,15 @@ function Login() {
           </div>
 
           <div className="space-y-4">
-            {/* Email */}
+            {/* Email or Username */}
             <div className="flex items-center border border-gray-400 rounded-md px-4 py-3">
               <FaUser className="text-gray-500 mr-3" />
               <input
                 type="text"
-                placeholder="Enter Email"
+                placeholder="Email atau Username"
                 className="flex-1 outline-none text-gray-700"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={emailOrUsername}
+                onChange={(e) => setEmailOrUsername(e.target.value)}
               />
             </div>
 
