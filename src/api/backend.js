@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const backend = axios.create({
-  baseURL: "https://backend-go-done-production-d88a.up.railway.app/api",
+  baseURL: "https://backend-go-done-production-d88a.up.railway.app",
   timeout: 10000,
 });
 
