@@ -31,7 +31,10 @@ function Calendar() {
         const res = await backend.get("/tasks");
 
         const parsed = res.data
-          .filter((t) => t.status !== "completed")
+          .filter((t) => {
+            const normalizedStatus = (t.status || "").toLowerCase();
+            return normalizedStatus !== 'done' && normalizedStatus !== 'completed';
+          })
           .map((t) => {
             const deadline = (t.deadline || "").trim();
             

@@ -29,15 +29,15 @@ const PRIORITY_CONFIG = {
 };
 
 // --- Task Card ---
-const TaskCard = ({ task, onEdit, onDelete, onDone }) => {
+const TaskCard = ({ task, onEdit, onDelete, onDone, isCompleted }) => {
   const priority = normalizePriority(task.priority);
   const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.Low;
 
   return (
-    <div className={`bg-gray-50 p-4 rounded-lg border-l-4 ${config.border}`}>
+    <div className={`bg-gray-50 p-4 rounded-lg border-l-4 ${config.border} ${isCompleted ? 'opacity-70' : ''}`}>
       <div className="flex justify-between items-center">
         <div>
-          <p className="text-sm font-semibold text-gray-800">{task.title}</p>
+          <p className={`text-sm font-semibold ${isCompleted ? 'line-through text-gray-500' : 'text-gray-800'}`}>{task.title}</p>
           <p className="text-xs text-gray-500">{task.category_name}</p>
           <p className={`text-xs font-medium ${config.text}`}>
             Due: {formatDate(task.deadline)}
@@ -46,16 +46,19 @@ const TaskCard = ({ task, onEdit, onDelete, onDone }) => {
 
         <div className="flex items-center gap-3">
           <FaPen
-            className="cursor-pointer text-blue-500 hover:text-blue-700 text-xs"
-            onClick={() => onEdit(task)}
+            className={`cursor-pointer text-xs ${isCompleted ? 'text-gray-400 cursor-not-allowed' : 'text-blue-500 hover:text-blue-700'}`}
+            onClick={() => !isCompleted && onEdit(task)}
+            title={isCompleted ? "Cannot edit completed task" : "Edit"}
           />
           <FaTrashAlt
             className="cursor-pointer text-red-500 hover:text-red-700 text-xs"
             onClick={() => onDelete(task.task_id)}
+            title="Delete"
           />
           <FaCheck
-            className="cursor-pointer text-green-500 hover:text-green-700 text-xs"
+            className={`cursor-pointer text-xs ${isCompleted ? 'text-gray-400' : 'text-green-500 hover:text-green-700'}`}
             onClick={() => onDone(task.task_id)}
+            title={isCompleted ? "Mark as pending" : "Mark as completed"}
           />
         </div>
       </div>
@@ -83,6 +86,7 @@ const PriorityColumn = ({ priority, tasks, onEdit, onDelete, onDone }) => {
             onEdit={onEdit}
             onDelete={onDelete}
             onDone={onDone}
+            isCompleted={false}
           />
         ))}
       </div>
@@ -149,10 +153,12 @@ function TaskPriorities() {
       }));
       setCategories(catOpts);
 
-      // Group tasks by priority
+      // Group tasks by priority - exclude completed tasks
       const tasksByPriority = { High: [], Medium: [], Low: [] };
       taskRes.data.forEach((t) => {
-        if (t.status === 'completed') return;
+        // Filter out completed tasks
+        const normalizedStatus = (t.status || "").toLowerCase();
+        if (normalizedStatus === 'done' || normalizedStatus === 'completed') return;
         const priority = normalizePriority(t.priority);
         if (tasksByPriority[priority]) {
           tasksByPriority[priority].push({ ...t, priority });

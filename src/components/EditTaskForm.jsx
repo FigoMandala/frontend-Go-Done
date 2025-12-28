@@ -29,6 +29,7 @@ function EditTaskForm({
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [status, setStatus] = useState("pending");
   const [validationMessage, setValidationMessage] = useState("");
   const [showValidationPopup, setShowValidationPopup] = useState(false);
 
@@ -46,6 +47,7 @@ function EditTaskForm({
       setDescription(task.description || "");
       setPriority(task.priority || "");
       setDeadline(normalizeDate(task.deadline) || "");
+      setStatus(task.status || "pending");
     } else {
       resetForm();
     }
@@ -57,6 +59,7 @@ function EditTaskForm({
     setDescription("");
     setPriority("");
     setDeadline("");
+    setStatus("pending");
   };
 
   const normalizeDate = (str) => {
@@ -114,7 +117,7 @@ function EditTaskForm({
       description: sanitizeInput(description.trim()),
       deadline: normalizeDate(deadline),
       priority,
-      ...(isEditMode ? {} : { status: "pending" }) // Always set pending for new tasks
+      status: status // Always include status
     };
 
     onSave(formData);

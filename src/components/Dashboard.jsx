@@ -66,7 +66,7 @@ function Dashboard() {
             description: t.description,
             deadline: deadline,
             priority: t.priority?.toLowerCase(),
-            status: t.status,
+            status: (t.status || "pending").toLowerCase() === "done" ? "Done" : (t.status || "pending"),
           };
         });
 
@@ -165,7 +165,8 @@ function Dashboard() {
   const upcomingTasks = tasks
     .filter((t) => {
       const days = getDaysUntilDeadline(t.deadline);
-      return days !== null && days >= 0 && days <= 7 && t.status !== "completed";
+      const normalizedStatus = (t.status || "").toLowerCase();
+      return days !== null && days >= 0 && days <= 7 && normalizedStatus !== 'done' && normalizedStatus !== 'completed';
     })
     .sort((a, b) => {
       const daysA = getDaysUntilDeadline(a.deadline);
@@ -176,14 +177,16 @@ function Dashboard() {
 
   const todayTasks = tasks.filter((t) => {
     const days = getDaysUntilDeadline(t.deadline);
-    return days === 0 && t.status !== "completed";
+    const normalizedStatus = (t.status || "").toLowerCase();
+    return days === 0 && normalizedStatus !== 'done' && normalizedStatus !== 'completed';
   });
 
   // Overdue tasks - only incomplete tasks that are past deadline
   const overdueTasks = tasks
     .filter((t) => {
       const days = getDaysUntilDeadline(t.deadline);
-      return days !== null && days < 0 && t.status !== "completed";
+      const normalizedStatus = (t.status || "").toLowerCase();
+      return days !== null && days < 0 && normalizedStatus !== 'done' && normalizedStatus !== 'completed';
     })
     .sort((a, b) => {
       const daysA = getDaysUntilDeadline(a.deadline);
@@ -287,10 +290,10 @@ function Dashboard() {
         status: "completed",
       });
 
-      // Update task status in local state
+      // Update task status in local state - use "Done" to match database
       setTasks((prev) =>
         prev.map((t) =>
-          t.id === taskId ? { ...t, status: "completed" } : t
+          t.id === taskId ? { ...t, status: "Done" } : t
         )
       );
 

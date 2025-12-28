@@ -187,7 +187,7 @@ function MyTask() {
           description: t.description,
           priority: t.priority,
           deadline: t.deadline,
-          status: t.status || "pending",
+          status: (t.status || "pending").toLowerCase() === "done" ? "Done" : (t.status || "pending"),
         }));
         setTasks(taskItems);
       } catch (err) {
@@ -352,7 +352,7 @@ function MyTask() {
       await backend.put(`/tasks/${taskId}`, { status: "completed" });
       setTasks((prev) =>
         prev.map((t) =>
-          t.id === taskId ? { ...t, status: "completed" } : t
+          t.id === taskId ? { ...t, status: "Done" } : t
         )
       );
       showPopup("success", "Success!", "Task marked as completed!");
@@ -466,21 +466,21 @@ function MyTask() {
               <div
                 key={task.id}
                 className={`flex items-center justify-between p-4 rounded-lg border-l-4 transition-all ${
-                  task.status === "completed"
+                  (task.status || "").toLowerCase() === "done"
                     ? "bg-gray-100 border-gray-300 opacity-60"
                     : `bg-gray-50 ${priorityBorder(task.priority)} hover:shadow-md`
                 }`}
               >
-                <div className={task.status === "completed" ? "opacity-70" : ""}>
+                <div className={(task.status || "").toLowerCase() === "done" ? "opacity-70" : ""}>
                   <p className={`text-sm font-semibold ${
-                    task.status === "completed"
+                    (task.status || "").toLowerCase() === "done"
                       ? "text-gray-500 line-through"
                       : "text-gray-800"
                   }`}>
                     {sanitizeOutput(task.title)}
                   </p>
                   <p className={`text-xs ${
-                    task.status === "completed"
+                    (task.status || "").toLowerCase() === "done"
                       ? "text-gray-400"
                       : "text-gray-500"
                   }`}>
@@ -490,7 +490,7 @@ function MyTask() {
 
                 <div className="flex items-center gap-3">
                   <span className={`text-xs ${
-                    task.status === "completed"
+                    (task.status || "").toLowerCase() === "done"
                       ? "text-gray-400"
                       : "text-blue-600"
                   }`}>
@@ -501,10 +501,10 @@ function MyTask() {
                     onClick={() => handleEditTask(task)}
                     className="p-2 hover:bg-gray-200 rounded-lg"
                     title="Edit"
-                    disabled={task.status === "completed"}
+                    disabled={(task.status || "").toLowerCase() === "done"}
                   >
                     <FiEdit2 className={`w-5 h-5 ${
-                      task.status === "completed"
+                      (task.status || "").toLowerCase() === "done"
                         ? "text-gray-400"
                         : "text-blue-600"
                     }`} />
@@ -521,11 +521,11 @@ function MyTask() {
                   <button
                     onClick={() => handleFinishTask(task.id)}
                     className="p-2 hover:bg-gray-200 rounded-lg"
-                    title={task.status === "completed" ? "Already completed" : "Mark as finished"}
-                    disabled={task.status === "completed"}
+                    title={(task.status || "").toLowerCase() === "done" ? "Already completed" : "Mark as finished"}
+                    disabled={(task.status || "").toLowerCase() === "done"}
                   >
                     <FiCheck className={`w-5 h-5 ${
-                      task.status === "completed"
+                      (task.status || "").toLowerCase() === "done"
                         ? "text-gray-400"
                         : "text-green-500"
                     }`} />
