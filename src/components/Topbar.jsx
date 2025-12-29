@@ -156,7 +156,6 @@ function Topbar() {
               
               <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
                 <h3 className="font-bold text-lg text-gray-800">Notifications</h3>
-                <button className="text-sm text-gray-400 hover:text-gray-600">Mark all read</button>
               </div>
 
               <div className="max-h-[300px] overflow-y-auto bg-gray-50">
