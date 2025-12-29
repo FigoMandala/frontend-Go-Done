@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { FiEdit2, FiTrash2, FiClock, FiCalendar, FiCheckCircle, FiAlertTriangle, FiCheck } from "react-icons/fi";
 import backend from "../api/backend";
+import EditTaskForm from "./EditTaskForm";
 
 const sanitizeOutput = (text) => {
   if (!text) return "";
@@ -14,6 +15,7 @@ function Dashboard() {
   const [greeting, setGreeting] = useState("");
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
   
   // Edit Modal States
   const [showEditModal, setShowEditModal] = useState(false);
@@ -48,13 +50,16 @@ function Dashboard() {
       });
   }, []);
 
-  // Fetch tasks
+  // Fetch tasks and categories
   useEffect(() => {
-    const fetchTasks = async () => {
+    const fetchData = async () => {
       try {
-        const res = await backend.get("/tasks");
+        const [tasksRes, catsRes] = await Promise.all([
+          backend.get("/tasks"),
+          backend.get("/categories")
+        ]);
 
-        const parsed = res.data.map((t) => {
+        const parsed = tasksRes.data.map((t) => {
           const deadline = (t.deadline || "").trim();
           
           return {
@@ -69,15 +74,21 @@ function Dashboard() {
           };
         });
 
+        const catOpts = catsRes.data.map((c) => ({
+          value: c.category_id,
+          label: c.category_name,
+        }));
+
         setTasks(parsed);
+        setCategories(catOpts);
       } catch (e) {
-        console.error("Error fetching tasks:", e);
+        console.error("Error fetching data:", e);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTasks();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -216,34 +227,21 @@ function Dashboard() {
   };
 
   // Handle Update Task
-  const handleUpdateTask = async () => {
-    if (!editingTask.title.trim()) {
-      setErrorMessage("Task title is required!");
-      setShowErrorPopup(true);
-      return;
-    }
-
+  const handleUpdateTask = async (formData) => {
     try {
-      const payload = {
-        category_id: editingTask.categoryId,
-        title: editingTask.title.trim(),
-        description: editingTask.description?.trim() || "",
-        deadline: normalizeDate(editingTask.deadline),
-        priority: editingTask.priority,
-        status: "pending",
-      };
-
-      await backend.put(`/tasks/${editingTask.id}`, payload);
+      await backend.put(`/tasks/${editingTask.id}`, formData);
 
       setTasks((prev) =>
         prev.map((t) =>
           t.id === editingTask.id
             ? {
                 ...t,
-                title: payload.title,
-                description: payload.description,
-                priority: payload.priority,
-                deadline: payload.deadline,
+                title: formData.title,
+                description: formData.description,
+                priority: formData.priority.toLowerCase(),
+                deadline: formData.deadline,
+                categoryId: formData.category_id,
+                status: formData.status,
               }
             : t
         )
@@ -495,72 +493,22 @@ function Dashboard() {
 
       {/* EDIT MODAL */}
       {showEditModal && editingTask && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold mb-4">Edit Task</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-1">Title</label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={editingTask.title}
-                  onChange={(e) => setEditingTask({...editingTask, title: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-1">Description</label>
-                <textarea
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  rows="3"
-                  value={editingTask.description || ""}
-                  onChange={(e) => setEditingTask({...editingTask, description: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-1">Deadline</label>
-                <input
-                  type="date"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={editingTask.deadline || ""}
-                  onChange={(e) => setEditingTask({...editingTask, deadline: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-1">Priority</label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 capitalize"
-                  value={editingTask.priority || ""}
-                  onChange={(e) => setEditingTask({...editingTask, priority: e.target.value})}
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditingTask(null);
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-                onClick={handleUpdateTask}
-              >
-                Save Changes
-              </button>
-            </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl my-8">
+            <EditTaskForm
+              isOpen={showEditModal}
+              isEditMode={true}
+              task={editingTask}
+              categories={categories}
+              onSave={handleUpdateTask}
+              onCancel={() => {
+                setShowEditModal(false);
+                setEditingTask(null);
+              }}
+              onAddCategory={() => {}}
+              onEditCategory={() => {}}
+              onDeleteCategory={() => {}}
+            />
           </div>
         </div>
       )}
