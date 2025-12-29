@@ -116,7 +116,7 @@ function EditTaskForm({
       title: sanitizeInput(taskTitle.trim()),
       description: sanitizeInput(description.trim()),
       deadline: normalizeDate(deadline),
-      priority,
+      priority: priority.charAt(0).toUpperCase() + priority.slice(1).toLowerCase(),
       status: status // Always include status
     };
 
