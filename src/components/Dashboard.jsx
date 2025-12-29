@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { FiEdit2, FiTrash2, FiClock, FiCalendar, FiCheckCircle, FiAlertTriangle, FiCheck } from "react-icons/fi";
 import backend from "../api/backend";
 
-// Sanitize output to prevent XSS when rendering
 const sanitizeOutput = (text) => {
   if (!text) return "";
   const div = document.createElement("div");
